@@ -1,0 +1,32 @@
+<Window x:Class="PersonalAssistant.Views.FloatingWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="" Height="50" Width="180"
+        WindowStyle="None" AllowsTransparency="True"
+        Topmost="True" ShowInTaskbar="False"
+        Background="Transparent" ResizeMode="NoResize"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown">
+
+    <Grid>
+        <TextBlock Text="{Binding TimeDisplay}"
+                   Foreground="Black" FontSize="28" FontWeight="Bold"
+                   FontFamily="Consolas"
+                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                   Opacity="0.6">
+            <TextBlock.Effect>
+                <BlurEffect Radius="4"/>
+            </TextBlock.Effect>
+        </TextBlock>
+        <TextBlock x:Name="TimeText"
+                   Text="{Binding TimeDisplay}"
+                   Foreground="White" FontSize="28" FontWeight="Bold"
+                   FontFamily="Consolas"
+                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        <TextBlock x:Name="PhaseLabel"
+                   Text="{Binding PhaseDisplay}"
+                   Foreground="#CCFFFFFF" FontSize="10"
+                   HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                   Margin="0,0,0,2"
+                   Visibility="Collapsed"/>
+    </Grid>
+</Window>
