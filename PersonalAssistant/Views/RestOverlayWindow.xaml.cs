@@ -59,8 +59,12 @@ public partial class RestOverlayWindow : Window
         });
     }
 
+    private Window? _emergencyDialog;
+
     private void EmergencyButton_Click(object sender, RoutedEventArgs e)
     {
+        if (_emergencyDialog != null && _emergencyDialog.IsLoaded)
+            return;
         ShowEmergencyDialog();
     }
 
@@ -133,7 +137,7 @@ public partial class RestOverlayWindow : Window
         dialog.Content = border;
 
         dialog.Loaded += (_, _) => { _topmostTimer.Stop(); passwordBox.Focus(); };
-        dialog.Closed += (_, _) => { if (!_forceClosed) _topmostTimer.Start(); };
+        dialog.Closed += (_, _) => { _emergencyDialog = null; if (!_forceClosed) _topmostTimer.Start(); };
         passwordBox.KeyDown += (_, ke) =>
         {
             if (ke.Key == System.Windows.Input.Key.Enter)
@@ -152,6 +156,7 @@ public partial class RestOverlayWindow : Window
             }
         };
 
+        _emergencyDialog = dialog;
         dialog.Show();
     }
 
