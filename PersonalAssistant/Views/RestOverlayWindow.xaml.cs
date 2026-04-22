@@ -157,8 +157,10 @@ public partial class RestOverlayWindow : Window
 
     private void ForceClose()
     {
-        _viewModel.PhaseDisplay = "已跳过休息";
+        _topmostTimer.Stop();
+        _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         _forceClosed = true;
+        _viewModel.PhaseDisplay = "已跳过休息";
         Close();
     }
 
