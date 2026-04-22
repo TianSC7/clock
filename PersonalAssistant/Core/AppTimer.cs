@@ -6,6 +6,7 @@ namespace PersonalAssistant.Core;
 
 public class AppTimer
 {
+    private readonly object _lock = new();
     private readonly System.Timers.Timer _timer;
     private readonly SettingsService _settings;
     private readonly ScheduleEngine _scheduleEngine = new();
@@ -58,50 +59,54 @@ public class AppTimer
     {
         if (!IsScheduledMode) return;
 
-        var oldBlock = _currentBlock;
-        _currentBlock = _scheduleEngine.FindCurrentBlock(_todayPlan);
-
-        if (_currentBlock != null)
+        lock (_lock)
         {
-            var targetPhase = _currentBlock.Type == BlockType.Focus ? TimerPhase.Focus : TimerPhase.Break;
+            var oldBlock = _currentBlock;
+            _currentBlock = _scheduleEngine.FindCurrentBlock(_todayPlan);
 
-            if (CurrentPhase != targetPhase || oldBlock != _currentBlock)
+            if (_currentBlock != null)
             {
-                CurrentPhase = targetPhase;
-                _phaseStartTime = _currentBlock.StartTime;
-                _remaining = _currentBlock.EndTime - DateTime.Now;
-                if (_remaining < TimeSpan.Zero) _remaining = TimeSpan.Zero;
-                IsPaused = false;
+                var targetPhase = _currentBlock.Type == BlockType.Focus ? TimerPhase.Focus : TimerPhase.Break;
 
-                if (!_timer.Enabled)
-                    _timer.Start();
-
-                PhaseChanged?.Invoke(this, new PhaseChangedEventArgs
+                if (CurrentPhase != targetPhase || oldBlock != _currentBlock)
                 {
-                    OldPhase = oldBlock?.Type == BlockType.Focus ? TimerPhase.Focus :
-                               oldBlock?.Type == BlockType.Break ? TimerPhase.Break : TimerPhase.Idle,
-                    NewPhase = targetPhase
-                });
+                    CurrentPhase = targetPhase;
+                    _phaseStartTime = _currentBlock.StartTime;
+                    _remaining = _currentBlock.EndTime - DateTime.Now;
+                    if (_remaining < TimeSpan.Zero) _remaining = TimeSpan.Zero;
+                    IsPaused = false;
+
+                    if (!_timer.Enabled)
+                        _timer.Start();
+
+                    PhaseChanged?.Invoke(this, new PhaseChangedEventArgs
+                    {
+                        OldPhase = oldBlock?.Type == BlockType.Focus ? TimerPhase.Focus :
+                                   oldBlock?.Type == BlockType.Break ? TimerPhase.Break : TimerPhase.Idle,
+                        NewPhase = targetPhase
+                    });
+                }
+                else
+                {
+                    var newRemaining = _currentBlock.EndTime - DateTime.Now;
+                    if (newRemaining < TimeSpan.Zero) newRemaining = TimeSpan.Zero;
+                    _remaining = newRemaining;
+                }
             }
             else
             {
-                _remaining = _currentBlock.EndTime - DateTime.Now;
-                if (_remaining < TimeSpan.Zero) _remaining = TimeSpan.Zero;
-            }
-        }
-        else
-        {
-            if (CurrentPhase != TimerPhase.Idle)
-            {
-                var oldPhase = CurrentPhase;
-                CurrentPhase = TimerPhase.Idle;
-                _remaining = TimeSpan.Zero;
-                _timer.Stop();
-                PhaseChanged?.Invoke(this, new PhaseChangedEventArgs
+                if (CurrentPhase != TimerPhase.Idle)
                 {
-                    OldPhase = oldPhase,
-                    NewPhase = TimerPhase.Idle
-                });
+                    var oldPhase = CurrentPhase;
+                    CurrentPhase = TimerPhase.Idle;
+                    _remaining = TimeSpan.Zero;
+                    _timer.Stop();
+                    PhaseChanged?.Invoke(this, new PhaseChangedEventArgs
+                    {
+                        OldPhase = oldPhase,
+                        NewPhase = TimerPhase.Idle
+                    });
+                }
             }
         }
 
@@ -194,24 +199,34 @@ public class AppTimer
 
     private void OnTimerElapsed(object? sender, System.Timers.ElapsedEventArgs e)
     {
-        if (_remaining > TimeSpan.Zero)
+        lock (_lock)
         {
-            _remaining = _remaining.Subtract(TimeSpan.FromSeconds(1));
-        }
-
-        if (_settings.Current.EnableWaterReminder)
-        {
-            _waterRemaining = _waterRemaining.Subtract(TimeSpan.FromSeconds(1));
-            if (_waterRemaining <= TimeSpan.Zero)
+            if (_remaining > TimeSpan.Zero)
             {
-                _waterRemaining = TimeSpan.FromMinutes(_settings.Current.WaterReminderMinutes);
-                WaterReminderDue?.Invoke(this, EventArgs.Empty);
+                _remaining = _remaining.Subtract(TimeSpan.FromSeconds(1));
             }
-        }
 
-        if (_remaining <= TimeSpan.Zero)
-        {
-            OnPhaseComplete();
+            if (_settings.Current.EnableWaterReminder)
+            {
+                _waterRemaining = _waterRemaining.Subtract(TimeSpan.FromSeconds(1));
+                if (_waterRemaining <= TimeSpan.Zero)
+                {
+                    _waterRemaining = TimeSpan.FromMinutes(_settings.Current.WaterReminderMinutes);
+                    WaterReminderDue?.Invoke(this, EventArgs.Empty);
+                }
+            }
+
+            if (_remaining <= TimeSpan.Zero)
+            {
+                if (IsScheduledMode)
+                {
+                    _timer.Stop();
+                }
+                else
+                {
+                    OnPhaseComplete();
+                }
+            }
         }
 
         Tick?.Invoke(this, EventArgs.Empty);
@@ -219,8 +234,6 @@ public class AppTimer
 
     private void OnPhaseComplete()
     {
-        if (IsScheduledMode) return;
-
         _timer.Stop();
 
         if (CurrentPhase == TimerPhase.Focus)

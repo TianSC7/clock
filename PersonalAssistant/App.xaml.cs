@@ -20,6 +20,7 @@ public partial class App : System.Windows.Application
     private RestOverlayWindow? _restOverlay;
     private MainWindow? _mainWindow;
     private System.Windows.Forms.NotifyIcon _notifyIcon = null!;
+    private System.Windows.Forms.ToolStripMenuItem _toggleFloatItem = null!;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -67,6 +68,8 @@ public partial class App : System.Windows.Application
         contextMenu.Items.Add("暂停/继续", null, (_, _) => TogglePause());
         contextMenu.Items.Add("跳过当前阶段", null, (_, _) => _timer.Skip());
         contextMenu.Items.Add("-");
+        _toggleFloatItem = new System.Windows.Forms.ToolStripMenuItem("隐藏浮窗", null, (_, _) => ToggleFloatingWindow());
+        contextMenu.Items.Add(_toggleFloatItem);
         contextMenu.Items.Add("打开主面板", null, (_, _) => ShowMainWindow());
         contextMenu.Items.Add("设置", null, (_, _) => ShowSettingsWindow());
         contextMenu.Items.Add("-");
@@ -117,6 +120,20 @@ public partial class App : System.Windows.Application
             _timer.Resume();
         else
             _timer.Pause();
+    }
+
+    private void ToggleFloatingWindow()
+    {
+        if (_floatingWindow.IsVisible)
+        {
+            _floatingWindow.Hide();
+            _toggleFloatItem.Text = "显示浮窗";
+        }
+        else
+        {
+            _floatingWindow.Show();
+            _toggleFloatItem.Text = "隐藏浮窗";
+        }
     }
 
     private void OnPhaseChanged(object? sender, Models.PhaseChangedEventArgs e)

@@ -1,19 +1,41 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Media;
+using System.Windows.Threading;
+using PersonalAssistant.Helpers;
 using PersonalAssistant.ViewModels;
 
 namespace PersonalAssistant.Views;
 
 public partial class FloatingWindow : Window
 {
+    private readonly DispatcherTimer _topmostTimer;
+
     public FloatingWindow(PomodoroViewModel viewModel)
     {
         InitializeComponent();
         DataContext = viewModel;
         viewModel.PropertyChanged += OnViewModelPropertyChanged;
         UpdatePhaseVisibility(viewModel);
+
+        Loaded += OnLoaded;
+
+        _topmostTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+        _topmostTimer.Tick += (_, _) => WindowHelper.MakeTopmostSticky(this);
+        _topmostTimer.Start();
+
+        Deactivated += (_, _) =>
+        {
+            Topmost = false;
+            Topmost = true;
+            WindowHelper.MakeTopmostSticky(this);
+        };
+    }
+
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        WindowHelper.HideFromTaskbar(this);
+        WindowHelper.MakeTopmostSticky(this);
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -45,5 +67,11 @@ public partial class FloatingWindow : Window
         {
             DragMove();
         }
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        _topmostTimer.Stop();
+        base.OnClosed(e);
     }
 }
