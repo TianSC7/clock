@@ -20,13 +20,13 @@
                                Foreground="White" HorizontalAlignment="Center" Margin="0,0,0,24"/>
                     <TextBlock x:Name="RestTimeDisplay" Text="{Binding TimeDisplay}" FontSize="68" FontWeight="Bold"
                                Foreground="#FF6B6B" HorizontalAlignment="Center"
-                               FontFamily="{StaticResource MonoFont}" Margin="0,0,0,28"
-                               Cursor="Arrow" MouseDown="RestTimeDisplay_MouseDown"/>
+                               FontFamily="{StaticResource MonoFont}" Margin="0,0,0,28"/>
                     <TextBlock Text="请离开屏幕，放松一下" FontSize="18"
-                               Foreground="#AAFFFFFF" HorizontalAlignment="Center"/>
-                    <TextBlock x:Name="EmergencyHint" Text="" FontSize="12"
-                               Foreground="#55FFFFFF" HorizontalAlignment="Center" Margin="0,12,0,0"
-                               Visibility="Collapsed"/>
+                               Foreground="#AAFFFFFF" HorizontalAlignment="Center" Margin="0,0,0,24"/>
+                    <Button Content="紧急情况" FontSize="13" Foreground="#55FFFFFF"
+                            Background="Transparent" BorderThickness="0" Cursor="Hand"
+                            HorizontalAlignment="Center" Padding="16,6"
+                            Click="EmergencyButton_Click"/>
                 </StackPanel>
             </Border>
         </StackPanel>

@@ -11,10 +11,6 @@ public partial class RestOverlayWindow : Window
 {
     private readonly PomodoroViewModel _viewModel;
     private readonly DispatcherTimer _topmostTimer;
-    private int _emergencyClickCount;
-    private DateTime _lastEmergencyClickTime;
-    private const int EmergencyClickThreshold = 5;
-    private const double EmergencyClickIntervalMs = 1500;
 
     [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
     private static extern EXECUTION_STATE SetThreadExecutionState(EXECUTION_STATE esFlags);
@@ -63,26 +59,9 @@ public partial class RestOverlayWindow : Window
         });
     }
 
-    private void RestTimeDisplay_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    private void EmergencyButton_Click(object sender, RoutedEventArgs e)
     {
-        var now = DateTime.Now;
-        if ((now - _lastEmergencyClickTime).TotalMilliseconds > EmergencyClickIntervalMs)
-            _emergencyClickCount = 0;
-
-        _lastEmergencyClickTime = now;
-        _emergencyClickCount++;
-
-        if (_emergencyClickCount >= EmergencyClickThreshold)
-        {
-            _emergencyClickCount = 0;
-            EmergencyHint.Visibility = Visibility.Collapsed;
-            ShowEmergencyDialog();
-        }
-        else if (_emergencyClickCount >= 2)
-        {
-            EmergencyHint.Text = $"连续点击 {EmergencyClickThreshold - _emergencyClickCount} 次启动紧急退出";
-            EmergencyHint.Visibility = Visibility.Visible;
-        }
+        ShowEmergencyDialog();
     }
 
     private void ShowEmergencyDialog()
@@ -153,7 +132,8 @@ public partial class RestOverlayWindow : Window
         border.Child = stackPanel;
         dialog.Content = border;
 
-        dialog.Loaded += (_, _) => passwordBox.Focus();
+        dialog.Loaded += (_, _) => { _topmostTimer.Stop(); passwordBox.Focus(); };
+        dialog.Closed += (_, _) => { if (!_forceClosed) _topmostTimer.Start(); };
         passwordBox.KeyDown += (_, ke) =>
         {
             if (ke.Key == System.Windows.Input.Key.Enter)
