@@ -11,6 +11,10 @@ public partial class RestOverlayWindow : Window
 {
     private readonly PomodoroViewModel _viewModel;
     private readonly DispatcherTimer _topmostTimer;
+    private int _emergencyClickCount;
+    private DateTime _lastEmergencyClickTime;
+    private const int EmergencyClickThreshold = 5;
+    private const double EmergencyClickIntervalMs = 1500;
 
     [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
     private static extern EXECUTION_STATE SetThreadExecutionState(EXECUTION_STATE esFlags);
@@ -59,8 +63,135 @@ public partial class RestOverlayWindow : Window
         });
     }
 
+    private void RestTimeDisplay_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        var now = DateTime.Now;
+        if ((now - _lastEmergencyClickTime).TotalMilliseconds > EmergencyClickIntervalMs)
+            _emergencyClickCount = 0;
+
+        _lastEmergencyClickTime = now;
+        _emergencyClickCount++;
+
+        if (_emergencyClickCount >= EmergencyClickThreshold)
+        {
+            _emergencyClickCount = 0;
+            EmergencyHint.Visibility = Visibility.Collapsed;
+            ShowEmergencyDialog();
+        }
+        else if (_emergencyClickCount >= 2)
+        {
+            EmergencyHint.Text = $"连续点击 {EmergencyClickThreshold - _emergencyClickCount} 次启动紧急退出";
+            EmergencyHint.Visibility = Visibility.Visible;
+        }
+    }
+
+    private void ShowEmergencyDialog()
+    {
+        var dialog = new Window
+        {
+            Title = "紧急情况验证",
+            Width = 360,
+            Height = 220,
+            WindowStyle = WindowStyle.None,
+            AllowsTransparency = true,
+            Background = System.Windows.Media.Brushes.Transparent,
+            ResizeMode = ResizeMode.NoResize,
+            WindowStartupLocation = WindowStartupLocation.CenterScreen,
+            Topmost = true
+        };
+
+        var border = new System.Windows.Controls.Border
+        {
+            Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x2C, 0x3E, 0x50)),
+            CornerRadius = new CornerRadius(16),
+            Padding = new Thickness(32)
+        };
+
+        var stackPanel = new System.Windows.Controls.StackPanel();
+
+        var title = new System.Windows.Controls.TextBlock
+        {
+            Text = "\u26a0 紧急情况验证",
+            FontSize = 20,
+            FontWeight = FontWeights.Bold,
+            Foreground = System.Windows.Media.Brushes.White,
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 16)
+        };
+        stackPanel.Children.Add(title);
+
+        var hint = new System.Windows.Controls.TextBlock
+        {
+            Text = "请输入密码以解除休息",
+            FontSize = 13,
+            Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(0xAA, 0xFF, 0xFF, 0xFF)),
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 16)
+        };
+        stackPanel.Children.Add(hint);
+
+        var passwordBox = new System.Windows.Controls.TextBox
+        {
+            FontSize = 24,
+            FontWeight = FontWeights.Bold,
+            TextAlignment = TextAlignment.Center,
+            MaxLength = 4,
+            Margin = new Thickness(0, 0, 0, 16)
+        };
+        stackPanel.Children.Add(passwordBox);
+
+        var errorMsg = new System.Windows.Controls.TextBlock
+        {
+            Text = "密码错误",
+            FontSize = 12,
+            Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xFF, 0x6B, 0x6B)),
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+            Visibility = Visibility.Collapsed
+        };
+        stackPanel.Children.Add(errorMsg);
+
+        border.Child = stackPanel;
+        dialog.Content = border;
+
+        dialog.Loaded += (_, _) => passwordBox.Focus();
+        passwordBox.KeyDown += (_, ke) =>
+        {
+            if (ke.Key == System.Windows.Input.Key.Enter)
+            {
+                var todayPassword = DateTime.Now.ToString("MMdd");
+                if (passwordBox.Text == todayPassword)
+                {
+                    ForceClose();
+                    dialog.Close();
+                }
+                else
+                {
+                    errorMsg.Visibility = Visibility.Visible;
+                    passwordBox.Clear();
+                }
+            }
+        };
+
+        dialog.Show();
+    }
+
+    private void ForceClose()
+    {
+        _viewModel.PhaseDisplay = "已跳过休息";
+        _forceClosed = true;
+        Close();
+    }
+
+    private bool _forceClosed;
+
     protected override void OnClosing(CancelEventArgs e)
     {
+        if (_forceClosed)
+        {
+            base.OnClosing(e);
+            return;
+        }
+
         if (_viewModel.CurrentPhase == Models.TimerPhase.Break)
         {
             e.Cancel = true;

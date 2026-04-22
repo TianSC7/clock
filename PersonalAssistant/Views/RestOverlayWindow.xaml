@@ -18,11 +18,15 @@
                 <StackPanel>
                     <TextBlock Text="🌿 休息时间" FontSize="42" FontWeight="Bold"
                                Foreground="White" HorizontalAlignment="Center" Margin="0,0,0,24"/>
-                    <TextBlock Text="{Binding TimeDisplay}" FontSize="68" FontWeight="Bold"
+                    <TextBlock x:Name="RestTimeDisplay" Text="{Binding TimeDisplay}" FontSize="68" FontWeight="Bold"
                                Foreground="#FF6B6B" HorizontalAlignment="Center"
-                               FontFamily="{StaticResource MonoFont}" Margin="0,0,0,28"/>
+                               FontFamily="{StaticResource MonoFont}" Margin="0,0,0,28"
+                               Cursor="Arrow" MouseDown="RestTimeDisplay_MouseDown"/>
                     <TextBlock Text="请离开屏幕，放松一下" FontSize="18"
                                Foreground="#AAFFFFFF" HorizontalAlignment="Center"/>
+                    <TextBlock x:Name="EmergencyHint" Text="" FontSize="12"
+                               Foreground="#55FFFFFF" HorizontalAlignment="Center" Margin="0,12,0,0"
+                               Visibility="Collapsed"/>
                 </StackPanel>
             </Border>
         </StackPanel>
