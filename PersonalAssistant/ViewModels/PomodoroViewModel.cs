@@ -23,6 +23,8 @@ public class PomodoroViewModel : INotifyPropertyChanged
     private string _scheduleDetail = "";
     private string _nextBlockInfo = "";
     private int _totalFocusBlocks;
+    private string _todayFocusTime = "0分钟";
+    private string _todayBreakTime = "0分钟";
 
     public string TimeDisplay
     {
@@ -58,6 +60,18 @@ public class PomodoroViewModel : INotifyPropertyChanged
     {
         get => _totalFocusBlocks;
         set { _totalFocusBlocks = value; OnPropertyChanged(); }
+    }
+
+    public string TodayFocusTime
+    {
+        get => _todayFocusTime;
+        set { _todayFocusTime = value; OnPropertyChanged(); }
+    }
+
+    public string TodayBreakTime
+    {
+        get => _todayBreakTime;
+        set { _todayBreakTime = value; OnPropertyChanged(); }
     }
 
     public string ScheduleStatus
@@ -107,6 +121,7 @@ public class PomodoroViewModel : INotifyPropertyChanged
         _timer.ScheduleInfoChanged += OnScheduleInfoChanged;
 
         CompletedCount = _db.GetCompletedFocusCountToday();
+        RefreshDailyStats();
 
         if (IsScheduledMode)
         {
@@ -172,6 +187,7 @@ public class PomodoroViewModel : INotifyPropertyChanged
                 CompletedCount = _timer.CompletedCycles;
                 _db.AddLog($"完成第 {_timer.CompletedCycles} 个番茄钟", "pomodoro");
                 _notification.NotifyFocusComplete(_timer.CompletedCycles);
+                RefreshDailyStats();
             }
             else if (e.OldPhase == TimerPhase.Break && e.NewPhase == TimerPhase.Focus)
             {
@@ -231,6 +247,23 @@ public class PomodoroViewModel : INotifyPropertyChanged
         UpdateNextBlockInfo();
         OnPropertyChanged(nameof(IsScheduledMode));
         OnPropertyChanged(nameof(ShowFreeControls));
+    }
+
+    public void RefreshDailyStats()
+    {
+        var stats = _db.GetDailyStats(DateTime.Now.ToString("yyyy-MM-dd"));
+        TodayFocusTime = FormatDuration(stats.FocusMinutes);
+        TodayBreakTime = FormatDuration(stats.BreakMinutes);
+    }
+
+    private static string FormatDuration(int totalMinutes)
+    {
+        if (totalMinutes == 0) return "0分钟";
+        var hours = totalMinutes / 60;
+        var mins = totalMinutes % 60;
+        if (hours > 0 && mins > 0) return $"{hours}小时{mins}分钟";
+        if (hours > 0) return $"{hours}小时";
+        return $"{mins}分钟";
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

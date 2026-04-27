@@ -10,8 +10,11 @@ public class AppTimer
     private readonly System.Timers.Timer _timer;
     private readonly SettingsService _settings;
     private readonly ScheduleEngine _scheduleEngine = new();
+    private readonly DatabaseService? _db;
     private TimeSpan _remaining;
     private DateTime _phaseStartTime;
+    private DateTime? _currentSessionStart;
+    private TimerPhase _currentSessionPhase;
     private TimeSpan _waterRemaining;
     private List<WorkBlock> _todayPlan = new();
     private WorkBlock? _currentBlock;
@@ -33,12 +36,32 @@ public class AppTimer
     public event EventHandler? WaterReminderDue;
     public event EventHandler? ScheduleInfoChanged;
 
-    public AppTimer(SettingsService settings)
+    public AppTimer(SettingsService settings, DatabaseService? db = null)
     {
         _settings = settings;
+        _db = db;
         _timer = new System.Timers.Timer(1000);
         _timer.Elapsed += OnTimerElapsed;
         _waterRemaining = TimeSpan.FromMinutes(settings.Current.WaterReminderMinutes);
+    }
+
+    private void CloseCurrentSession()
+    {
+        if (_db == null || _currentSessionStart == null) return;
+        var end = DateTime.Now;
+        _db.AddSession(
+            _currentSessionStart.Value.ToString("yyyy-MM-dd HH:mm:ss"),
+            end.ToString("yyyy-MM-dd HH:mm:ss"),
+            _currentSessionPhase == TimerPhase.Focus ? "focus" : "break",
+            true);
+        _currentSessionStart = null;
+    }
+
+    private void StartSession(TimerPhase phase)
+    {
+        CloseCurrentSession();
+        _currentSessionStart = DateTime.Now;
+        _currentSessionPhase = phase;
     }
 
     public void InitializeScheduledMode()
@@ -76,6 +99,8 @@ public class AppTimer
                     if (_remaining < TimeSpan.Zero) _remaining = TimeSpan.Zero;
                     IsPaused = false;
 
+                    StartSession(targetPhase);
+
                     if (!_timer.Enabled)
                         _timer.Start();
 
@@ -101,6 +126,7 @@ public class AppTimer
                     CurrentPhase = TimerPhase.Idle;
                     _remaining = TimeSpan.Zero;
                     _timer.Stop();
+                    CloseCurrentSession();
                     PhaseChanged?.Invoke(this, new PhaseChangedEventArgs
                     {
                         OldPhase = oldPhase,
@@ -179,6 +205,7 @@ public class AppTimer
         CurrentPhase = TimerPhase.Idle;
         _remaining = TimeSpan.Zero;
         IsPaused = false;
+        CloseCurrentSession();
         PhaseChanged?.Invoke(this, new PhaseChangedEventArgs { OldPhase = old, NewPhase = TimerPhase.Idle });
     }
 
@@ -187,6 +214,8 @@ public class AppTimer
         var oldPhase = CurrentPhase;
         CurrentPhase = newPhase;
         _phaseStartTime = DateTime.Now;
+
+        StartSession(newPhase);
 
         _remaining = newPhase == TimerPhase.Focus
             ? TimeSpan.FromMinutes(_settings.Current.FocusMinutes)

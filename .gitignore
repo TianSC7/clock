@@ -3,3 +3,5 @@ obj/
 Publish/
 *.user
 *.suo
+.vs/
+*.png

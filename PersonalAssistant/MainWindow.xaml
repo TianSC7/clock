@@ -5,11 +5,17 @@
         Title="PersonalAssistant" Height="560" Width="720"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource BgBrush}"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
+        UseLayoutRounding="True"
         Closing="Window_Closing">
     <Window.Resources>
         <local:BoolToVisibilityConverter x:Key="BoolToVis"/>
         <local:InverseBoolToVisibilityConverter x:Key="InvBoolToVis"/>
         <local:NullToCollapsingConverter x:Key="NullToCollapsing"/>
+        <local:PriorityToTextConverter x:Key="PriorityToTextConverter"/>
+        <local:PriorityToBgConverter x:Key="PriorityToBgConverter"/>
+        <local:PriorityToFgConverter x:Key="PriorityToFgConverter"/>
     </Window.Resources>
 
     <Grid>
@@ -49,7 +55,8 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <Border Grid.Row="0" Background="White" CornerRadius="16" Padding="32"
+                <Border Grid.Row="0" Background="White" CornerRadius="10" Padding="32"
+                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
                         SnapsToDevicePixels="True">
                     <Grid>
                         <Grid.RowDefinitions>
@@ -115,19 +122,37 @@
 
                         <Border Grid.Row="4" Background="#F8F9FA" CornerRadius="10" Padding="16,10"
                                 HorizontalAlignment="Center" Margin="0,4,0,0">
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                <TextBlock Foreground="{StaticResource TextSecondaryBrush}" FontSize="13" VerticalAlignment="Center">
-                                    <Run Text="今日完成"/>
-                                </TextBlock>
-                                <TextBlock Text="{Binding Pomodoro.CompletedCount, Mode=OneWay}"
-                                           FontWeight="Bold" FontSize="20" Foreground="{StaticResource PrimaryBrush}"
-                                           Margin="8,0,4,0" VerticalAlignment="Center"/>
-                                <TextBlock Foreground="{StaticResource TextSecondaryBrush}" FontSize="13" VerticalAlignment="Center">
-                                    <Run Text="/"/>
-                                    <Run Text="{Binding Pomodoro.TotalFocusBlocks, Mode=OneWay}"/>
-                                    <Run Text="个番茄钟"/>
-                                </TextBlock>
-                            </StackPanel>
+                            <UniformGrid Columns="4" Rows="1">
+                                <StackPanel HorizontalAlignment="Center" Margin="0,0,16,0">
+                                    <TextBlock Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" HorizontalAlignment="Center" Text="今日专注"/>
+                                    <TextBlock Text="{Binding Pomodoro.TodayFocusTime, Mode=OneWay}"
+                                               FontWeight="Bold" FontSize="16" Foreground="{StaticResource PrimaryBrush}"
+                                               HorizontalAlignment="Center"/>
+                                </StackPanel>
+                                <StackPanel HorizontalAlignment="Center" Margin="0,0,16,0">
+                                    <TextBlock Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" HorizontalAlignment="Center" Text="今日休息"/>
+                                    <TextBlock Text="{Binding Pomodoro.TodayBreakTime, Mode=OneWay}"
+                                               FontWeight="Bold" FontSize="16" Foreground="{StaticResource AccentBrush}"
+                                               HorizontalAlignment="Center"/>
+                                </StackPanel>
+                                <StackPanel HorizontalAlignment="Center" Margin="0,0,16,0">
+                                    <TextBlock Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" HorizontalAlignment="Center" Text="完成"/>
+                                    <TextBlock Text="{Binding Pomodoro.CompletedCount, Mode=OneWay}"
+                                               FontWeight="Bold" FontSize="16" Foreground="{StaticResource SuccessBrush}"
+                                               HorizontalAlignment="Center"/>
+                                </StackPanel>
+                                <StackPanel HorizontalAlignment="Center">
+                                    <TextBlock Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" HorizontalAlignment="Center" Text="总计"/>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <TextBlock Text="{Binding Pomodoro.CompletedCount, Mode=OneWay}"
+                                                   FontWeight="Bold" FontSize="16" Foreground="{StaticResource PrimaryBrush}"/>
+                                        <TextBlock Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" VerticalAlignment="Bottom" Margin="2,0,0,2">
+                                            <Run Text="/"/>
+                                            <Run Text="{Binding Pomodoro.TotalFocusBlocks, Mode=OneWay}"/>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </StackPanel>
+                            </UniformGrid>
                         </Border>
                     </Grid>
                 </Border>
@@ -141,7 +166,8 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <Border Grid.Row="0" Background="White" CornerRadius="12" Padding="16" Margin="0,0,0,12"
+                <Border Grid.Row="0" Background="White" CornerRadius="10" Padding="16" Margin="0,0,0,12"
+                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
                         SnapsToDevicePixels="True">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -179,7 +205,8 @@
                     </Grid>
                 </Border>
 
-                <Border Grid.Row="1" Background="White" CornerRadius="12" Padding="4"
+                <Border Grid.Row="1" Background="White" CornerRadius="10" Padding="4"
+                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
                         SnapsToDevicePixels="True">
                     <ListBox ItemsSource="{Binding Todo.Todos}">
                         <ListBox.ItemTemplate>
@@ -187,21 +214,23 @@
                                 <Grid Margin="6,4">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <CheckBox Grid.Column="0"
                                               VerticalAlignment="Center" Margin="0,0,8,0"
                                               Click="TodoCheckBox_Clicked"/>
-                                    <TextBlock Grid.Column="1" Text="{Binding Title}" VerticalAlignment="Center"
+                                    <Border Grid.Column="1" CornerRadius="6" Padding="8,3" Margin="0,0,8,0"
+                                            Background="{Binding Priority, Converter={StaticResource PriorityToBgConverter}}">
+                                        <TextBlock Text="{Binding Priority, Converter={StaticResource PriorityToTextConverter}}"
+                                                   FontSize="11" VerticalAlignment="Center" FontWeight="SemiBold"
+                                                   Foreground="{Binding Priority, Converter={StaticResource PriorityToFgConverter}}"/>
+                                    </Border>
+                                    <TextBlock Grid.Column="2" Text="{Binding Title}" VerticalAlignment="Center"
                                                Margin="0,0,10,0" FontSize="13"
                                                Foreground="{StaticResource TextPrimaryBrush}"
                                                TextTrimming="CharacterEllipsis"/>
-                                    <Border Grid.Column="2" Background="#FFF8E1" CornerRadius="6" Padding="8,3" Margin="0,0,8,0">
-                                        <TextBlock Text="{Binding DueDate}" Foreground="#F57F17"
-                                                   FontSize="11" VerticalAlignment="Center"/>
-                                    </Border>
                                     <Button Grid.Column="3" Content="删除" FontSize="11" Padding="8,2"
                                             Style="{StaticResource DangerButton}"
                                             Command="{Binding DataContext.Todo.DeleteCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
@@ -238,7 +267,8 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <Border Grid.Row="0" Background="White" CornerRadius="12" Padding="16" Margin="0,0,0,12"
+                <Border Grid.Row="0" Background="White" CornerRadius="10" Padding="16" Margin="0,0,0,12"
+                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
                         SnapsToDevicePixels="True">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -256,7 +286,8 @@
                     </Grid>
                 </Border>
 
-                <Border Grid.Row="1" Background="White" CornerRadius="12" Padding="4"
+                <Border Grid.Row="1" Background="White" CornerRadius="10" Padding="4"
+                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
                         SnapsToDevicePixels="True">
                     <Grid>
                         <Grid.RowDefinitions>
@@ -265,11 +296,17 @@
                         </Grid.RowDefinitions>
                         <Border Grid.Row="0" Padding="16,10" Margin="4">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Foreground="{StaticResource TextSecondaryBrush}" FontSize="13" VerticalAlignment="Center">
-                                    <Run Text="📅"/>
-                                    <Run Text="{Binding Log.SelectedDate, Mode=OneWay}" FontWeight="SemiBold"
-                                         Foreground="{StaticResource TextPrimaryBrush}"/>
-                                </TextBlock>
+                                <TextBlock Foreground="{StaticResource TextSecondaryBrush}" FontSize="13" VerticalAlignment="Center" Margin="0,0,8,0" Text="📅"/>
+                                <ComboBox ItemsSource="{Binding Log.LogGroups}" 
+                                          SelectedValue="{Binding Log.SelectedDate}" 
+                                          SelectedValuePath="Date" 
+                                          Width="130" Height="30" BorderThickness="0" Background="Transparent">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Date}" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" Margin="4,0"/>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
                             </StackPanel>
                         </Border>
                         <ListBox Grid.Row="1" ItemsSource="{Binding Log.TodayLogs}">

@@ -39,7 +39,7 @@ public partial class App : System.Windows.Application
         _db = new DatabaseService();
         _db.Initialize();
 
-        _timer = new AppTimer(_settings);
+        _timer = new AppTimer(_settings, _db);
         _notification = new NotificationService(_settings);
 
         _pomodoroVm = new PomodoroViewModel(_timer, _db, _notification, _settings);

@@ -26,7 +26,13 @@ public class LogViewModel : INotifyPropertyChanged
     public string SelectedDate
     {
         get => _selectedDate;
-        set { _selectedDate = value; OnPropertyChanged(); LoadLogs(); }
+        set 
+        { 
+            if (_selectedDate == value || string.IsNullOrEmpty(value)) return;
+            _selectedDate = value; 
+            OnPropertyChanged(); 
+            LoadLogs(false); 
+        }
     }
 
     public RelayCommand AddCommand { get; }
@@ -37,27 +43,34 @@ public class LogViewModel : INotifyPropertyChanged
         _db = db;
         AddCommand = new RelayCommand(_ => AddLog(), _ => !string.IsNullOrWhiteSpace(NewContent));
         ExportCommand = new RelayCommand(_ => ExportLogs());
-        LoadLogs();
+        LoadLogs(true);
     }
 
-    public void LoadLogs()
+    public void LoadLogs(bool reloadGroups = true)
     {
         System.Windows.Application.Current.Dispatcher.Invoke(() =>
         {
             TodayLogs.Clear();
-            LogGroups.Clear();
-
             var entries = _db.GetLogsByDate(SelectedDate);
             foreach (var entry in entries)
             {
                 TodayLogs.Add(entry);
             }
 
-            var allDates = _db.GetLogDates();
-            foreach (var date in allDates)
+            if (reloadGroups)
             {
-                var logs = _db.GetLogsByDate(date);
-                LogGroups.Add(new LogGroup { Date = date, Entries = new List<LogEntry>(logs) });
+                LogGroups.Clear();
+                var allDates = _db.GetLogDates();
+                // Ensure current date is in the list even if no logs exist yet
+                if (!allDates.Contains(DateTime.Now.ToString("yyyy-MM-dd")))
+                {
+                    allDates.Insert(0, DateTime.Now.ToString("yyyy-MM-dd"));
+                }
+                foreach (var date in allDates)
+                {
+                    var logs = _db.GetLogsByDate(date);
+                    LogGroups.Add(new LogGroup { Date = date, Entries = new List<LogEntry>(logs) });
+                }
             }
         });
     }
@@ -66,7 +79,7 @@ public class LogViewModel : INotifyPropertyChanged
     {
         _db.AddLog(NewContent, "manual");
         NewContent = string.Empty;
-        LoadLogs();
+        LoadLogs(true);
     }
 
     private void ExportLogs()

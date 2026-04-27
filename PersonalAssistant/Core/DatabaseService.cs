@@ -191,6 +191,42 @@ public class DatabaseService
         return list;
     }
 
+    public void RecoverOrphanedSessions()
+    {
+        using var conn = new SqliteConnection(ConnectionString);
+        conn.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = @"
+            UPDATE sessions
+            SET end_at = start_at, completed = 0
+            WHERE end_at IS NULL";
+        cmd.ExecuteNonQuery();
+    }
+
+    public int AddOpenSession(string startAt, string phase)
+    {
+        using var conn = new SqliteConnection(ConnectionString);
+        conn.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "INSERT INTO sessions (start_at, end_at, phase, completed) VALUES (@start_at, NULL, @phase, 0); SELECT last_insert_rowid();";
+        cmd.Parameters.AddWithValue("@start_at", startAt);
+        cmd.Parameters.AddWithValue("@phase", phase);
+        var result = cmd.ExecuteScalar();
+        return result != null ? Convert.ToInt32(result) : 0;
+    }
+
+    public void CloseSession(int sessionId, string endAt, bool completed)
+    {
+        using var conn = new SqliteConnection(ConnectionString);
+        conn.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "UPDATE sessions SET end_at = @end_at, completed = @completed WHERE id = @id";
+        cmd.Parameters.AddWithValue("@id", sessionId);
+        cmd.Parameters.AddWithValue("@end_at", endAt);
+        cmd.Parameters.AddWithValue("@completed", completed ? 1 : 0);
+        cmd.ExecuteNonQuery();
+    }
+
     // === Sessions ===
 
     public void AddSession(string startAt, string? endAt, string phase, bool completed)
@@ -215,5 +251,108 @@ public class DatabaseService
         cmd.Parameters.AddWithValue("@today", DateTime.Now.ToString("yyyy-MM-dd"));
         var result = cmd.ExecuteScalar();
         return result != null ? Convert.ToInt32(result) : 0;
+    }
+
+    public (int FocusMinutes, int BreakMinutes) GetDailyStats(string date)
+    {
+        using var conn = new SqliteConnection(ConnectionString);
+        conn.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = @"
+            SELECT COALESCE(SUM(CASE WHEN phase='focus' THEN CAST((julianday(COALESCE(end_at, start_at)) - julianday(start_at)) * 24 * 60 AS INTEGER) ELSE 0 END), 0),
+                   COALESCE(SUM(CASE WHEN phase='break' THEN CAST((julianday(COALESCE(end_at, start_at)) - julianday(start_at)) * 24 * 60 AS INTEGER) ELSE 0 END), 0)
+            FROM sessions WHERE date(start_at)=@date";
+        cmd.Parameters.AddWithValue("@date", date);
+        using var reader = cmd.ExecuteReader();
+        if (reader.Read())
+        {
+            return (reader.GetInt32(0), reader.GetInt32(1));
+        }
+        return (0, 0);
+    }
+
+    public List<DailyStats> GetRangeStats(string startDate, string endDate)
+    {
+        var list = new List<DailyStats>();
+        using var conn = new SqliteConnection(ConnectionString);
+        conn.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = @"
+            SELECT date(start_at) as day,
+                   COALESCE(SUM(CASE WHEN phase='focus' THEN CAST((julianday(COALESCE(end_at, start_at)) - julianday(start_at)) * 24 * 60 AS INTEGER) ELSE 0 END), 0),
+                   COALESCE(SUM(CASE WHEN phase='break' THEN CAST((julianday(COALESCE(end_at, start_at)) - julianday(start_at)) * 24 * 60 AS INTEGER) ELSE 0 END), 0),
+                   COUNT(CASE WHEN phase='focus' AND completed=1 THEN 1 END),
+                   COUNT(CASE WHEN phase='focus' THEN 1 END),
+                   COUNT(CASE WHEN phase='break' AND completed=1 THEN 1 END)
+            FROM sessions
+            WHERE date(start_at) BETWEEN @start AND @end
+            GROUP BY date(start_at)
+            ORDER BY day ASC";
+        cmd.Parameters.AddWithValue("@start", startDate);
+        cmd.Parameters.AddWithValue("@end", endDate);
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+        {
+            list.Add(new DailyStats
+            {
+                Date = reader.GetString(0),
+                FocusMinutes = reader.GetInt32(1),
+                BreakMinutes = reader.GetInt32(2),
+                CompletedFocus = reader.GetInt32(3),
+                TotalFocusSessions = reader.GetInt32(4),
+                CompletedBreak = reader.GetInt32(5)
+            });
+        }
+        return list;
+    }
+
+    public int GetCurrentStreak()
+    {
+        using var conn = new SqliteConnection(ConnectionString);
+        conn.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = @"
+            WITH focus_days AS (
+                SELECT DISTINCT date(start_at) as d
+                FROM sessions
+                WHERE phase='focus' AND completed=1
+            ),
+            streak AS (
+                SELECT d, julianday(d) - julianday(@today) as diff
+                FROM focus_days
+                WHERE julianday(d) <= julianday(@today)
+            )
+            SELECT COUNT(*) FROM streak WHERE diff >= -(SELECT COUNT(*)-1 FROM streak s2 WHERE s2.diff <= 0 AND s2.diff >= streak.diff)";
+        cmd.Parameters.AddWithValue("@today", DateTime.Now.ToString("yyyy-MM-dd"));
+        var result = cmd.ExecuteScalar();
+        return result != null ? Convert.ToInt32(result) : 0;
+    }
+
+    public (int TotalFocusMinutes, int TotalSessions, int TotalCompleted) GetAllTimeStats()
+    {
+        using var conn = new SqliteConnection(ConnectionString);
+        conn.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = @"
+            SELECT COALESCE(SUM(CASE WHEN phase='focus' THEN CAST((julianday(COALESCE(end_at, start_at)) - julianday(start_at)) * 24 * 60 AS INTEGER) ELSE 0 END), 0),
+                   COUNT(*),
+                   COUNT(CASE WHEN completed=1 THEN 1 END)
+            FROM sessions";
+        using var reader = cmd.ExecuteReader();
+        if (reader.Read())
+        {
+            return (reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2));
+        }
+        return (0, 0, 0);
+    }
+
+    public string GetFirstSessionDate()
+    {
+        using var conn = new SqliteConnection(ConnectionString);
+        conn.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT MIN(date(start_at)) FROM sessions";
+        var result = cmd.ExecuteScalar();
+        return result?.ToString() ?? DateTime.Now.ToString("yyyy-MM-dd");
     }
 }

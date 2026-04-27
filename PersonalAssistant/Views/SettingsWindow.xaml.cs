@@ -249,6 +249,18 @@ public partial class SettingsWindow : Window
 
     private void SaveButton_Click(object sender, RoutedEventArgs e)
     {
+        ApplySettings();
+        DialogResult = true;
+        Close();
+    }
+
+    private void ApplyButton_Click(object sender, RoutedEventArgs e)
+    {
+        ApplySettings();
+    }
+
+    private void ApplySettings()
+    {
         var s = _settingsService.Current;
         s.FocusMinutes = _focusMinutes;
         s.BreakMinutes = _breakMinutes;
@@ -267,8 +279,6 @@ public partial class SettingsWindow : Window
         _settingsService.Save();
         _timer.ReloadSettings();
         _timer.ReloadSchedule();
-        DialogResult = true;
-        Close();
     }
 
     private void CancelButton_Click(object sender, RoutedEventArgs e)

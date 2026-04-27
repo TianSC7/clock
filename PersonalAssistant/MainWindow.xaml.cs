@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Media;
 using PersonalAssistant.ViewModels;
 
 namespace PersonalAssistant;
@@ -26,6 +27,40 @@ public class NullToCollapsingConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         => string.IsNullOrEmpty(value as string) ? Visibility.Collapsed : Visibility.Visible;
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}
+
+public class PriorityToTextConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        => value is int p ? p switch { 3 => "高", 2 => "中", _ => "低" } : "低";
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}
+
+public class PriorityToBgConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        => value is int p ? p switch
+        {
+            3 => new SolidColorBrush(System.Windows.Media.Color.FromRgb(254, 235, 235)),
+            2 => new SolidColorBrush(System.Windows.Media.Color.FromRgb(232, 240, 254)),
+            _ => new SolidColorBrush(System.Windows.Media.Color.FromRgb(232, 245, 233))
+        } : new SolidColorBrush(System.Windows.Media.Color.FromRgb(232, 245, 233));
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}
+
+public class PriorityToFgConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        => value is int p ? p switch
+        {
+            3 => new SolidColorBrush(System.Windows.Media.Color.FromRgb(231, 76, 60)),
+            2 => new SolidColorBrush(System.Windows.Media.Color.FromRgb(33, 150, 243)),
+            _ => new SolidColorBrush(System.Windows.Media.Color.FromRgb(76, 175, 80))
+        } : new SolidColorBrush(System.Windows.Media.Color.FromRgb(76, 175, 80));
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         => throw new NotSupportedException();
 }

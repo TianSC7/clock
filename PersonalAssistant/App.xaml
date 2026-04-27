@@ -3,18 +3,18 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              ShutdownMode="OnExplicitShutdown">
     <Application.Resources>
-        <Color x:Key="PrimaryColor">#FF6B6B</Color>
-        <Color x:Key="PrimaryDarkColor">#E74C3C</Color>
-        <Color x:Key="PrimaryLightColor">#FFB3B3</Color>
-        <Color x:Key="AccentColor">#4ECDC4</Color>
-        <Color x:Key="SuccessColor">#4CAF50</Color>
-        <Color x:Key="WarningColor">#FF9800</Color>
-        <Color x:Key="BgColor">#F5F7FA</Color>
+        <Color x:Key="PrimaryColor">#007AFF</Color>
+        <Color x:Key="PrimaryDarkColor">#0056B3</Color>
+        <Color x:Key="PrimaryLightColor">#80BFFF</Color>
+        <Color x:Key="AccentColor">#5856D6</Color>
+        <Color x:Key="SuccessColor">#34C759</Color>
+        <Color x:Key="WarningColor">#FF9500</Color>
+        <Color x:Key="BgColor">#F5F5F7</Color>
         <Color x:Key="CardColor">#FFFFFF</Color>
-        <Color x:Key="TextPrimary">#2C3E50</Color>
-        <Color x:Key="TextSecondary">#7F8C8D</Color>
-        <Color x:Key="BorderColor">#E8ECF1</Color>
-        <Color x:Key="HoverColor">#34495E</Color>
+        <Color x:Key="TextPrimary">#1D1D1F</Color>
+        <Color x:Key="TextSecondary">#86868B</Color>
+        <Color x:Key="BorderColor">#E5E5EA</Color>
+        <Color x:Key="HoverColor">#E8E8ED</Color>
 
         <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}"/>
         <SolidColorBrush x:Key="PrimaryDarkBrush" Color="{StaticResource PrimaryDarkColor}"/>
@@ -76,19 +76,19 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="Bd" Background="{StaticResource PrimaryBrush}" CornerRadius="8"
+                        <Border x:Name="Bd" Background="{StaticResource PrimaryBrush}" CornerRadius="6"
                                 Padding="{TemplateBinding Padding}"
                                 SnapsToDevicePixels="True">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
                                               RecognizesAccessKey="True"
-                                              TextElement.Foreground="White" TextElement.FontWeight="SemiBold"/>
+                                              TextElement.Foreground="White" TextElement.FontWeight="Medium"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource PrimaryDarkBrush}"/>
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource PrimaryLightBrush}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#C0392B"/>
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource PrimaryDarkBrush}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="Bd" Property="Opacity" Value="0.4"/>
@@ -176,20 +176,32 @@
                                     </Grid.ColumnDefinitions>
                                     <ContentPresenter Grid.Column="0" Content="{TemplateBinding SelectionBoxItem}"
                                                       ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
-                                                      VerticalAlignment="Center" Margin="10,4,4,4"/>
+                                                      VerticalAlignment="Center" Margin="10,4,4,4" IsHitTestVisible="False"/>
                                     <Path Grid.Column="1" Data="M0,0 L4,4 L8,0" Stroke="{StaticResource TextSecondaryBrush}"
                                           StrokeThickness="1.5" Fill="Transparent"
                                           HorizontalAlignment="Center" VerticalAlignment="Center"
-                                          Margin="0,0,10,0"/>
+                                          Margin="0,0,10,0" IsHitTestVisible="False"/>
                                 </Grid>
                             </Border>
+                            <ToggleButton x:Name="ToggleButton"
+                                          Focusable="false" ClickMode="Press"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                          Background="Transparent" BorderBrush="Transparent" Foreground="Transparent">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border Background="Transparent"/>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
                             <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen}"
                                    Placement="Bottom" PopupAnimation="Slide"
                                    AllowsTransparency="True">
                                 <Border Background="White" CornerRadius="8" Margin="0,4,0,0"
                                         BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
                                         SnapsToDevicePixels="True">
-                                    <StackPanel IsItemsHost="True"/>
+                                    <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
+                                        <StackPanel IsItemsHost="True"/>
+                                    </ScrollViewer>
                                 </Border>
                             </Popup>
                         </Grid>
