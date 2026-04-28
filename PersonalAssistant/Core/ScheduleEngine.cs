@@ -17,7 +17,10 @@ public class ScheduleEngine
             while (cursor < slotEnd)
             {
                 var focusEnd = cursor.AddMinutes(schedule.FocusMinutes);
-                if (focusEnd > slotEnd) break;
+                if (focusEnd > slotEnd)
+                {
+                    focusEnd = slotEnd;
+                }
 
                 blocks.Add(new WorkBlock
                 {
@@ -28,10 +31,12 @@ public class ScheduleEngine
                 });
                 cursor = focusEnd;
 
+                if (cursor >= slotEnd) break;
+
                 var breakEnd = cursor.AddMinutes(schedule.BreakMinutes);
                 if (breakEnd > slotEnd)
                 {
-                    break;
+                    breakEnd = slotEnd;
                 }
 
                 blocks.Add(new WorkBlock

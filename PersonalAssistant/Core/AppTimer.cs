@@ -120,12 +120,26 @@ public class AppTimer
             }
             else
             {
+                var nextBlock = _scheduleEngine.FindNextBlock(_todayPlan);
+                if (nextBlock != null)
+                {
+                    var newRemaining = nextBlock.StartTime - DateTime.Now;
+                    if (newRemaining < TimeSpan.Zero) newRemaining = TimeSpan.Zero;
+                    _remaining = newRemaining;
+                    
+                    if (!_timer.Enabled)
+                        _timer.Start();
+                }
+                else
+                {
+                    _remaining = TimeSpan.Zero;
+                    _timer.Stop();
+                }
+
                 if (CurrentPhase != TimerPhase.Idle)
                 {
                     var oldPhase = CurrentPhase;
                     CurrentPhase = TimerPhase.Idle;
-                    _remaining = TimeSpan.Zero;
-                    _timer.Stop();
                     CloseCurrentSession();
                     PhaseChanged?.Invoke(this, new PhaseChangedEventArgs
                     {

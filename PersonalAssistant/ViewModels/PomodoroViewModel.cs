@@ -167,7 +167,7 @@ public class PomodoroViewModel : INotifyPropertyChanged
     {
         System.Windows.Application.Current.Dispatcher.Invoke(() =>
         {
-            TimeDisplay = _timer.Remaining.ToString(@"mm\:ss");
+            TimeDisplay = FormatTimeSpan(_timer.Remaining);
         });
     }
 
@@ -212,7 +212,7 @@ public class PomodoroViewModel : INotifyPropertyChanged
             if (!IsRunning && IsScheduledMode)
             {
                 PhaseDisplay = _timer.ScheduleStatus;
-                TimeDisplay = "00:00";
+                TimeDisplay = FormatTimeSpan(_timer.Remaining);
             }
         });
     }
@@ -264,6 +264,15 @@ public class PomodoroViewModel : INotifyPropertyChanged
         if (hours > 0 && mins > 0) return $"{hours}小时{mins}分钟";
         if (hours > 0) return $"{hours}小时";
         return $"{mins}分钟";
+    }
+
+    private static string FormatTimeSpan(TimeSpan ts)
+    {
+        if (ts.TotalHours >= 1)
+        {
+            return $"{(int)ts.TotalHours:D2}:{ts.Minutes:D2}:{ts.Seconds:D2}";
+        }
+        return ts.ToString(@"mm\:ss");
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

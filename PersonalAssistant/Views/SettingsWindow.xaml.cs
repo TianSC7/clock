@@ -228,17 +228,24 @@ public partial class SettingsWindow : Window
             }
 
             var lines = new List<string>();
-            for (int i = 0; i < focusBlocks.Count; i++)
+            int focusIndex = 1;
+            for (int i = 0; i < blocks.Count; i++)
             {
-                lines.Add($"{i + 1}. {focusBlocks[i].StartTime:HH:mm}-{focusBlocks[i].EndTime:HH:mm} 专注");
-                var breakBlocks = blocks.Where(b => b.Type == BlockType.Break).ToList();
-                if (i < breakBlocks.Count)
+                if (blocks[i].Type == BlockType.Focus)
                 {
-                    lines.Add($"   {breakBlocks[i].StartTime:HH:mm}-{breakBlocks[i].EndTime:HH:mm} 休息");
+                    string line = $"{focusIndex}. {blocks[i].StartTime:HH:mm}-{blocks[i].EndTime:HH:mm} 专注";
+                    
+                    if (i + 1 < blocks.Count && blocks[i+1].Type == BlockType.Break)
+                    {
+                        line += $"\n   {blocks[i+1].StartTime:HH:mm}-{blocks[i+1].EndTime:HH:mm} 休息";
+                    }
+                    
+                    lines.Add(line);
+                    focusIndex++;
                 }
             }
 
-            PreviewText.Text = $"共 {focusBlocks.Count} 个专注块，总专注 {focusBlocks.Count * _editSchedule.FocusMinutes} 分钟\n\n" +
+            PreviewText.Text = $"共 {focusBlocks.Count} 个专注块\n\n" +
                                string.Join("\n", lines);
         }
         catch (Exception ex)
