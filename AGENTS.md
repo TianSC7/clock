@@ -59,7 +59,8 @@ PersonalAssistant/                     # Single project
 │   ├── RestOverlayWindow.xaml/.cs     # Full-screen break overlay (uncloseable)
 │   └── SettingsWindow.xaml/.cs        # Two-tab settings (general + work schedule)
 ├── Helpers/
-│   └── WindowHelper.cs                # Win32 API (click-through, tool window)
+│   ├── WindowHelper.cs                # Win32 API (click-through, tool window)
+│   └── TopmostManager.cs              # Centralized topmost window manager with priority-based ordering
 └── Assets/
     └── app.ico                        # App icon
 ```
@@ -141,3 +142,6 @@ PersonalAssistant/                     # Single project
 | `Core/DatabaseService.cs` | All SQLite CRUD, table schemas in Initialize() |
 | `ViewModels/PomodoroViewModel.cs` | RelayCommand class, timer UI bindings, Dispatcher.Invoke usage |
 | `Views/SettingsWindow.xaml.cs` | BuildSlotRow — programmatic UI construction for schedule slots |
+| `Views/FloatingWindow.xaml.cs` | Always-on-top transparent countdown, registers with TopmostManager (priority: 1) |
+| `Views/RestOverlayWindow.xaml.cs` | Full-screen break overlay, registers with TopmostManager (priority: 2), emergency password dialog (priority: 3) |
+| `Helpers/TopmostManager.cs` | Centralized topmost window management with priority-based ordering |

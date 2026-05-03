@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Windows;
-using System.Windows.Threading;
+using System.Windows.Interop;
 using PersonalAssistant.Helpers;
 using PersonalAssistant.ViewModels;
 
@@ -10,7 +10,6 @@ namespace PersonalAssistant.Views;
 public partial class RestOverlayWindow : Window
 {
     private readonly PomodoroViewModel _viewModel;
-    private readonly DispatcherTimer _topmostTimer;
 
     [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
     private static extern EXECUTION_STATE SetThreadExecutionState(EXECUTION_STATE esFlags);
@@ -31,17 +30,19 @@ public partial class RestOverlayWindow : Window
         DataContext = viewModel;
         viewModel.PropertyChanged += OnViewModelPropertyChanged;
 
-        _topmostTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-        _topmostTimer.Tick += (_, _) => WindowHelper.MakeTopmostSticky(this);
-        _topmostTimer.Start();
-
         Loaded += OnLoaded;
+        Closed += OnWindowClosed;
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
         SetThreadExecutionState(EXECUTION_STATE.ES_CONTINUOUS | EXECUTION_STATE.ES_DISPLAY_REQUIRED | EXECUTION_STATE.ES_SYSTEM_REQUIRED);
-        WindowHelper.MakeTopmostSticky(this);
+        TopmostManager.Register(this, 2);
+    }
+
+    private void OnWindowClosed(object? sender, EventArgs e)
+    {
+        TopmostManager.Unregister(this);
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -51,10 +52,6 @@ public partial class RestOverlayWindow : Window
             if (_viewModel.CurrentPhase != Models.TimerPhase.Break)
             {
                 Close();
-            }
-            else
-            {
-                WindowHelper.MakeTopmostSticky(this);
             }
         });
     }
@@ -136,8 +133,12 @@ public partial class RestOverlayWindow : Window
         border.Child = stackPanel;
         dialog.Content = border;
 
-        dialog.Loaded += (_, _) => { _topmostTimer.Stop(); passwordBox.Focus(); };
-        dialog.Closed += (_, _) => { _emergencyDialog = null; if (!_forceClosed) _topmostTimer.Start(); };
+        dialog.Loaded += (_, _) =>
+        {
+            TopmostManager.Register(dialog, 3);
+            passwordBox.Focus();
+        };
+        dialog.Closed += (_, _) => { _emergencyDialog = null; };
         passwordBox.KeyDown += (_, ke) =>
         {
             if (ke.Key == System.Windows.Input.Key.Enter)
@@ -162,7 +163,6 @@ public partial class RestOverlayWindow : Window
 
     private void ForceClose()
     {
-        _topmostTimer.Stop();
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         _forceClosed = true;
         _viewModel.PhaseDisplay = "已跳过休息";
@@ -188,7 +188,6 @@ public partial class RestOverlayWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
-        _topmostTimer.Stop();
         SetThreadExecutionState(EXECUTION_STATE.ES_CONTINUOUS);
         base.OnClosed(e);
     }
